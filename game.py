@@ -79,8 +79,6 @@ class App:
             pygame.display.flip()
             self.clock.tick(self.fps)
 
-
-
 if __name__ == '__main__':
     app = App()
     app.run_game()
