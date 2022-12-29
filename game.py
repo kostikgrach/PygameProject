@@ -2,8 +2,6 @@ import os
 import sys
 import pygame
 
-""""""
-
 
 class Camera:
     # зададим начальный сдвиг камеры
