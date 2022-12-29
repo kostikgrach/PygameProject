@@ -56,15 +56,16 @@ class App(pygame.sprite.Sprite):
         self.all_sprites = pygame.sprite.Group()
         super().__init__(self.all_sprites)
         pygame.init()
-        self.width, self.height = 2000, 1000
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.width, self.height = self.screen.get_size()
         pygame.display.set_caption('Title')
         pygame.key.set_repeat(200, 70)
         self.fps = 50
         self.tile_width = self.tile_height = 50
         self.player_group = pygame.sprite.Group()
         self.all_sprites = pygame.sprite.Group()
+        self.coins = pygame.sprite.Group()
         self.hero = Hero(self, (100, 100))
         self.tiles_group = pygame.sprite.Group()
         self.camera = Camera(self)
@@ -86,6 +87,7 @@ class App(pygame.sprite.Sprite):
             image = image.convert()
             if colorkey == -1:
                 colorkey = image.get_at((0, 0))
+                print(colorkey)
             image.set_colorkey(colorkey)
         else:
             image = image.convert_alpha()
@@ -93,11 +95,11 @@ class App(pygame.sprite.Sprite):
 
     def msg(self, col):
         pygame.time.delay(1000)
-        font = pygame.font.Font(None, 80)
+        font = pygame.font.Font(None, int(0.04 * self.width))
         string_rendered = font.render('НАЖМИТЕ ПРОБЛЕЛ, ЧТОБЫ ПРОДОЛЖИТЬ', True, pygame.Color(col))
         intro_rect = string_rendered.get_rect()
-        intro_rect.x = 440
-        intro_rect.y = 800
+        intro_rect.x = int(0.22 * self.width)
+        intro_rect.y = int(0.8 * self.height)
         self.screen.blit(string_rendered, intro_rect)
 
     def start_wind(self):
@@ -106,14 +108,14 @@ class App(pygame.sprite.Sprite):
         self.sound.play()
         self.fon = pygame.transform.scale(self.load_image('start_fon.jpg'), (self.width, self.height))
         self.screen.blit(self.fon, (0, 0))
-        font = pygame.font.Font(None, 120)
-        text_coord = 400
+        font = pygame.font.Font(None, int(0.06 * self.width))
+        text_coord = int(0.4 * self.height)
         for line in intro_text:
             string_rendered = font.render(line, True, pygame.Color(255, 240, 240))
             intro_rect = string_rendered.get_rect()
             text_coord += 30
             intro_rect.top = text_coord
-            intro_rect.x = 600
+            intro_rect.x = int(0.3 * self.width)
             text_coord += intro_rect.height
             self.screen.blit(string_rendered, intro_rect)
         count = 0
@@ -166,6 +168,9 @@ class App(pygame.sprite.Sprite):
                 elif level[y][x] == '@':
                     self.tile_hero = Tile(self, 'empty', x, y)
                     self.hero = Hero(self, (x, y))
+                elif level[y][x] == 'C':
+                    Tile(self, 'empty', x, y)
+                    Coin(self, x, y)
         # вернем игрока, а также размер поля в клетках
 
     def run_game(self):
@@ -173,7 +178,7 @@ class App(pygame.sprite.Sprite):
         self.sound2.play()
         run = True
         lvl = ['map1', 'map2', 'map3']
-        self.generate_level(self.load_level(lvl[1]))
+        self.generate_level(self.load_level(lvl[0]))
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -197,8 +202,41 @@ class App(pygame.sprite.Sprite):
                 self.camera.apply(sprite)
             self.tiles_group.draw(self.screen)
             self.player_group.draw(self.screen)
+            self.coins.draw(self.screen)
+            self.coins.update()
             pygame.display.flip()
             self.clock.tick(self.fps)
+
+
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, sheet, columns, rows, x, y, groups=None):
+        if groups is None:
+            groups = [app.all_sprites]
+        super().__init__(*groups)
+        self.frames = []
+        self.cut_sheet(sheet, columns, rows)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.image.get_rect().move(x, y)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
+
+
+class Coin(AnimatedSprite):
+    def __init__(self, app, pos_x, pos_y):
+        super().__init__(app.load_image('coin.png'), 8, 1, app.tile_width * pos_x, app.tile_height * (pos_y + 1),
+                         (app.all_sprites, app.coins))
 
 
 if __name__ == '__main__':
