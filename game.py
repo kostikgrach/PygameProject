@@ -61,7 +61,7 @@ class App(pygame.sprite.Sprite):
         self.width, self.height = 2000, 1000
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        pygame.display.set_caption('Mario')
+        pygame.display.set_caption('Title')
         pygame.key.set_repeat(200, 70)
         self.fps = 50
         self.tile_width = self.tile_height = 50
