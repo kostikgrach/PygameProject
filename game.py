@@ -299,7 +299,7 @@ class Coin(AnimatedSprite):
 
 class Hero(AnimatedSprite):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(pygame.transform.scale(app.load_image('hero1.png'), (app.tile_width * 4, app.tile_height)), 4,
+        super().__init__(pygame.transform.scale(app.load_image('hero2.png'), (app.tile_width * 4, app.tile_height)), 4,
                          1, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 5, (app.all_sprites, app.hero_gr))
 
     def updatee(self, x, y):
