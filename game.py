@@ -36,6 +36,12 @@ class Hero(pygame.sprite.Sprite):
     def update(self, x, y):
         self.rect.x = x
         self.rect.y = y
+        self.get_item()
+
+    def get_item(self):
+        item = pygame.sprite.spritecollideany(self, app.items)
+        if item:
+            item.get()
 
 
 class Tile(pygame.sprite.Sprite):
@@ -65,11 +71,13 @@ class App(pygame.sprite.Sprite):
         self.tile_width = self.tile_height = 50
         self.player_group = pygame.sprite.Group()
         self.all_sprites = pygame.sprite.Group()
-        self.coins = pygame.sprite.Group()
+        self.items = pygame.sprite.Group()
         self.hero = Hero(self, (100, 100))
         self.tiles_group = pygame.sprite.Group()
         self.camera = Camera(self)
         self.hero = None
+        self.score = 0
+        self.time = 0
 
     def terminate(self):
         pygame.quit()
@@ -202,17 +210,19 @@ class App(pygame.sprite.Sprite):
                 self.camera.apply(sprite)
             self.tiles_group.draw(self.screen)
             self.player_group.draw(self.screen)
-            self.coins.draw(self.screen)
-            self.coins.update()
+            self.items.draw(self.screen)
+            self.items.update()
+            self.time += 1
             pygame.display.flip()
             self.clock.tick(self.fps)
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
-    def __init__(self, sheet, columns, rows, x, y, groups=None):
+    def __init__(self, sheet, columns, rows, x, y, speed, groups=None):
         if groups is None:
             groups = [app.all_sprites]
         super().__init__(*groups)
+        self.speed = speed
         self.frames = []
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
@@ -229,14 +239,20 @@ class AnimatedSprite(pygame.sprite.Sprite):
                     frame_location, self.rect.size)))
 
     def update(self):
-        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        if app.time % self.speed == 0:
+            self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
 
 
 class Coin(AnimatedSprite):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(app.load_image('coin.png'), 8, 1, app.tile_width * pos_x, app.tile_height * (pos_y + 1),
-                         (app.all_sprites, app.coins))
+        super().__init__(pygame.transform.scale(app.load_image('coin.png'), (app.tile_width * 8, app.tile_height)), 8,
+                         1, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 2, (app.all_sprites, app.items))
+
+    def get(self):
+        app.score += 100
+        pygame.mixer.Sound('data/coin.mp3').play()
+        self.kill()
 
 
 if __name__ == '__main__':
