@@ -204,7 +204,7 @@ class App(pygame.sprite.Sprite):
 
         self.x = 0
         self.y = 0
-        # self.sound2 = pygame.mixer.Sound('data/Void-Walk.mp3')
+        self.sound2 = pygame.mixer.Sound('data/Void-Walk.mp3')
         # self.sound2.play()
 
         run = True
