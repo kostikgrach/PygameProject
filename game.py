@@ -45,16 +45,45 @@ class Hero(pygame.sprite.Sprite):
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, app, tile_type, pos_x, pos_y):
+    def __init__(self, app, tile_type, pos_x, pos_y, *groups):
         super().__init__(app.tiles_group, app.all_sprites)
         tile_images = {
-            'wall': app.load_image('box.png'),
-            'empty': app.load_image('Floor.png'),
-            'vert_bord': app.load_image("bord.png")
+            'box': app.load_image('box.png'),
+            'floor': app.load_image('Floor.png'),
+            'wall': app.load_image("bord_hor.png"),
+            'black': app.load_image("black.png")
         }
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(
             app.tile_width * pos_x, app.tile_height * pos_y)
+
+
+class Boxes(pygame.sprite.Sprite):
+    def __init__(self, app, pos_x, pos_y):
+        super().__init__(app.tiles_group, app.all_sprites, app.boxes_group)
+        self.add(app.boxes_group)
+        self.image = app.load_image('box.png')
+        self.rect = self.image.get_rect().move(
+            app.tile_width * pos_x, app.tile_height * pos_y)
+
+    def update(self):
+        if pygame.sprite.collide_mask(self, app.hero):
+            pygame.mixer.Sound('data/wall.mp3').play()
+            app.hero.update(app.hero.rect.x + (-app.x), app.hero.rect.y + (-app.y))
+
+
+class Border(pygame.sprite.Sprite):
+    def __init__(self, app, pos_x, pos_y):
+        super().__init__(app.tiles_group, app.all_sprites, app.boxes_group)
+        self.add(app.boxes_group)
+        self.image = app.load_image('bord_hor.png')
+        self.rect = self.image.get_rect().move(
+            app.tile_width * pos_x, app.tile_height * pos_y)
+
+    def update(self):
+        if pygame.sprite.collide_mask(self, app.hero):
+            pygame.mixer.Sound('data/wall.mp3').play()
+            app.hero.update(app.hero.rect.x + (-app.x), app.hero.rect.y + (-app.y))
 
 
 class App(pygame.sprite.Sprite):
@@ -71,8 +100,10 @@ class App(pygame.sprite.Sprite):
         self.tile_width = self.tile_height = 50
         self.player_group = pygame.sprite.Group()
         self.all_sprites = pygame.sprite.Group()
+        self.boxes_group = pygame.sprite.Group()
         self.items = pygame.sprite.Group()
         self.hero = Hero(self, (100, 100))
+        self.horiz = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
         self.camera = Camera(self)
         self.hero = None
@@ -101,10 +132,10 @@ class App(pygame.sprite.Sprite):
             image = image.convert_alpha()
         return image
 
-    def msg(self, col):
+    def msg(self, text, col):
         pygame.time.delay(1000)
         font = pygame.font.Font(None, int(0.04 * self.width))
-        string_rendered = font.render('НАЖМИТЕ ПРОБЛЕЛ, ЧТОБЫ ПРОДОЛЖИТЬ', True, pygame.Color(col))
+        string_rendered = font.render(text, True, pygame.Color(col))
         intro_rect = string_rendered.get_rect()
         intro_rect.x = int(0.22 * self.width)
         intro_rect.y = int(0.8 * self.height)
@@ -141,7 +172,7 @@ class App(pygame.sprite.Sprite):
 
             count += 1
 
-            self.msg(colors[count % 2])
+            self.msg('НАЖМИТЕ ПРОБЛЕЛ, ЧТОБЫ ПРОДОЛЖИТЬ', colors[count % 2])
             pygame.display.update()
             pygame.display.flip()
             self.clock.tick(self.fps)
@@ -168,40 +199,55 @@ class App(pygame.sprite.Sprite):
         for y in range(len(level)):
             for x in range(len(level[y])):
                 if level[y][x] == '.':
-                    self.tile = Tile(self, 'empty', x, y)
+                    self.tile = Tile(self, 'floor', x, y)
                 elif level[y][x] == '#':
-                    self.tile_box = Tile(self, 'wall', x, y)
+                    self.tile_box = Boxes(self, x, y)
                 elif level[y][x] == '|':
-                    self.tile_box = Tile(self, 'vert_bord', x, y)
+                    self.tile_box = Border(self, x, y)
                 elif level[y][x] == '@':
-                    self.tile_hero = Tile(self, 'empty', x, y)
+                    self.tile_hero = Tile(self, 'floor', x, y)
                     self.hero = Hero(self, (x, y))
+                elif level[y][x] == 'b':
+                    self.tile_hero = Tile(self, 'black', x, y)
                 elif level[y][x] == 'C':
-                    Tile(self, 'empty', x, y)
+                    Tile(self, 'floor', x, y)
                     Coin(self, x, y)
         # вернем игрока, а также размер поля в клетках
 
     def run_game(self):
+        self.x = 0
+        self.y = 0
         self.sound2 = pygame.mixer.Sound('data/Void-Walk.mp3')
         self.sound2.play()
         run = True
         lvl = ['map1', 'map2', 'map3']
+
         self.generate_level(self.load_level(lvl[0]))
+
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.terminate()
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     self.terminate()
-                key = pygame.key.get_pressed()
-                if key[pygame.K_DOWN]:
-                    self.hero.update(self.hero.rect.x, self.hero.rect.y + 50)
-                if key[pygame.K_UP]:
-                    self.hero.update(self.hero.rect.x, self.hero.rect.y - 50)
-                if key[pygame.K_RIGHT]:
-                    self.hero.update(self.hero.rect.x + 50, self.hero.rect.y)
-                if key[pygame.K_LEFT]:
-                    self.hero.update(self.hero.rect.x - 50, self.hero.rect.y)
+                # key = pygame.key.get_pressed()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_DOWN:
+                        self.x = 0
+                        self.y = 50
+                        self.hero.update(self.hero.rect.x + self.x, self.hero.rect.y + self.y)
+                    if event.key == pygame.K_UP:
+                        self.x = 0
+                        self.y = -50
+                        self.hero.update(self.hero.rect.x + self.x, self.hero.rect.y + self.y)
+                    if event.key == pygame.K_RIGHT:
+                        self.x = 50
+                        self.y = 0
+                        self.hero.update(self.hero.rect.x + self.x, self.hero.rect.y + self.y)
+                    if event.key == pygame.K_LEFT:
+                        self.x = -50
+                        self.y = 0
+                        self.hero.update(self.hero.rect.x + self.x, self.hero.rect.y + self.y)
 
             self.screen.fill(pygame.Color('black'))
             self.all_sprites.draw(self.screen)
@@ -212,7 +258,10 @@ class App(pygame.sprite.Sprite):
             self.player_group.draw(self.screen)
             self.items.draw(self.screen)
             self.items.update()
+            self.boxes_group.draw(self.screen)
+            self.boxes_group.update()
             self.time += 1
+            pygame.display.update()
             pygame.display.flip()
             self.clock.tick(self.fps)
 
