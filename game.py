@@ -62,6 +62,7 @@ class App(pygame.sprite.Sprite):
         self.all_sprites = pygame.sprite.Group()
         super().__init__(self.all_sprites)
         pygame.init()
+        pygame.mixer.music.load('data/Void-Walk.mp3')
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.width, self.height = self.screen.get_size()
@@ -182,11 +183,11 @@ class App(pygame.sprite.Sprite):
         # вернем игрока, а также размер поля в клетках
 
     def run_game(self):
-        self.sound2 = pygame.mixer.Sound('data/Void-Walk.mp3')
-        self.sound2.play()
+        fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
         run = True
         lvl = ['map1', 'map2', 'map3']
         self.generate_level(self.load_level(lvl[0]))
+        pygame.mixer.music.play(-1)
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -203,7 +204,7 @@ class App(pygame.sprite.Sprite):
                 if key[pygame.K_LEFT]:
                     self.hero.update(self.hero.rect.x - 50, self.hero.rect.y)
 
-            self.screen.fill(pygame.Color('black'))
+            self.screen.blit(fon, (0, 0))
             self.all_sprites.draw(self.screen)
             self.camera.update(self.hero)
             for sprite in self.all_sprites:
