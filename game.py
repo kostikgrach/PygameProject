@@ -21,7 +21,6 @@ class Camera:
         self.dy = -(target.rect.y + target.rect.h // 2 - app.height // 2)
 
 
-
 class Tile(pygame.sprite.Sprite):
     def __init__(self, app, tile_type, pos_x, pos_y, *groups):
         super().__init__(app.tiles_group, app.all_sprites)
@@ -90,6 +89,8 @@ class App(pygame.sprite.Sprite):
         self.hero = None
         self.score = 0
         self.time = 0
+        self.done = False
+        self.bar_length = 0
 
     def terminate(self):
         pygame.quit()
@@ -122,7 +123,6 @@ class App(pygame.sprite.Sprite):
         intro_rect.y = int(0.8 * self.height)
         self.screen.blit(string_rendered, intro_rect)
 
-
     def start_wind(self):
         intro_text = ['<НАЗВАНИЕ ИГРЫ>']
         self.sound = pygame.mixer.Sound('data/start.mp3')
@@ -148,7 +148,8 @@ class App(pygame.sprite.Sprite):
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
                         self.sound.stop()
-                        self.run_game()
+                        # self.run_game()
+                        self.loading_screen()
                     if event.key == pygame.K_ESCAPE:
                         self.terminate()
 
@@ -158,6 +159,34 @@ class App(pygame.sprite.Sprite):
             pygame.display.update()
             pygame.display.flip()
             self.clock.tick(self.fps)
+
+    def draw_bar(self, len):
+        pygame.time.delay(70)
+        self.screen.blit(self.fon, (0, 0))
+        pygame.draw.rect(self.screen, (169, 172, 199), ((424, 577), (len, 45)))
+
+    def loading_screen(self):
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.terminate()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.terminate()
+            self.fon = pygame.transform.scale(self.load_image('load.jpg'), (self.width, self.height))
+
+            for i in range(0, 1081, 90):
+                self.draw_bar(i)
+                pygame.display.update()
+                pygame.display.flip()
+                self.clock.tick(self.fps)
+
+            # pygame.display.flip()
+            #
+            # pygame.display.update()
+            # pygame.display.flip()
+            # self.clock.tick(self.fps)
+            self.run_game()
 
     def load_level(self, filename):
 
