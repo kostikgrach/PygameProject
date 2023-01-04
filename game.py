@@ -36,32 +36,28 @@ class Tile(pygame.sprite.Sprite):
             app.tile_width * pos_x, app.tile_height * pos_y)
 
 
-class Boxes(pygame.sprite.Sprite):
-    def __init__(self, app, pos_x, pos_y):
+class Wall(pygame.sprite.Sprite):
+    def __init__(self, image, app, pos_x, pos_y):
         super().__init__(app.tiles_group, app.all_sprites, app.boxes_group)
         self.add(app.boxes_group)
-        self.image = app.load_image('box.jpg')
+        self.image = pygame.transform.scale(image, (app.tile_width, app.tile_height))
         self.rect = self.image.get_rect().move(
             app.tile_width * pos_x, app.tile_height * pos_y)
 
     def update(self):
         if pygame.sprite.collide_mask(self, app.hero):
             pygame.mixer.Sound('data/wall.mp3').play()
-            app.hero.updatee(app.hero.rect.x + (-app.x), app.hero.rect.y + (-app.y))
+            app.hero.stop()
 
 
-class Border(pygame.sprite.Sprite):
+class Boxes(Wall):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(app.tiles_group, app.all_sprites, app.boxes_group)
-        self.add(app.boxes_group)
-        self.image = app.load_image('bord_hor.png')
-        self.rect = self.image.get_rect().move(
-            app.tile_width * pos_x, app.tile_height * pos_y)
+        super().__init__(app.load_image('box.jpg'),  app, pos_x, pos_y)
 
-    def update(self):
-        if pygame.sprite.collide_mask(self, app.hero):
-            pygame.mixer.Sound('data/wall.mp3').play()
-            app.hero.updatee(app.hero.rect.x + (-app.x), app.hero.rect.y + (-app.y))
+
+class Border(Wall):
+    def __init__(self, app, pos_x, pos_y):
+        super().__init__(app.load_image('bord_hor.png'),  app, pos_x, pos_y)
 
 
 class App(pygame.sprite.Sprite):
@@ -77,7 +73,6 @@ class App(pygame.sprite.Sprite):
         pygame.key.set_repeat(200, 70)
         self.fps = 50
         self.tile_width = self.tile_height = 50
-        self.player_group = pygame.sprite.Group()
         self.all_sprites = pygame.sprite.Group()
         self.boxes_group = pygame.sprite.Group()
         self.items = pygame.sprite.Group()
@@ -108,7 +103,6 @@ class App(pygame.sprite.Sprite):
             image = image.convert()
             if colorkey == -1:
                 colorkey = image.get_at((0, 0))
-                print(colorkey)
             image.set_colorkey(colorkey)
         else:
             image = image.convert_alpha()
@@ -251,21 +245,13 @@ class App(pygame.sprite.Sprite):
                 # key = pygame.key.get_pressed()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_DOWN:
-                        self.x = 0
-                        self.y = 50
-                        self.hero.updatee(self.hero.rect.x + self.x, self.hero.rect.y + self.y)
+                        self.hero.update_pos(3)
                     if event.key == pygame.K_UP:
-                        self.x = 0
-                        self.y = -50
-                        self.hero.updatee(self.hero.rect.x + self.x, self.hero.rect.y + self.y)
+                        self.hero.update_pos(4)
                     if event.key == pygame.K_RIGHT:
-                        self.x = 50
-                        self.y = 0
-                        self.hero.updatee(self.hero.rect.x + self.x, self.hero.rect.y + self.y)
+                        self.hero.update_pos(2)
                     if event.key == pygame.K_LEFT:
-                        self.x = -50
-                        self.y = 0
-                        self.hero.updatee(self.hero.rect.x + self.x, self.hero.rect.y + self.y)
+                        self.hero.update_pos(1)
 
             self.screen.blit(fon, (0, 0))
             self.all_sprites.draw(self.screen)
@@ -273,7 +259,6 @@ class App(pygame.sprite.Sprite):
             for sprite in self.all_sprites:
                 self.camera.apply(sprite)
             self.tiles_group.draw(self.screen)
-            self.player_group.draw(self.screen)
             self.items.draw(self.screen)
             self.items.update()
             self.hero_gr.draw(self.screen)
@@ -328,18 +313,56 @@ class Coin(AnimatedSprite):
 
 class Hero(AnimatedSprite):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(pygame.transform.scale(app.load_image('hero2.png'), (app.tile_width * 4, app.tile_height)), 4,
-                         1, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 5, (app.all_sprites, app.hero_gr))
+        super().__init__(pygame.transform.scale(app.load_image('hero0.png', -1), (app.tile_width * 4, app.tile_height * 4)),
+                         4, 4, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 5, (app.all_sprites, app.hero_gr))
+        self.direction = 0
+        self.count = 0
+        self.x = self.rect.x
+        self.y = self.rect.y
 
-    def updatee(self, x, y):
-        self.rect.x = x
-        self.rect.y = y
-        self.get_item()
+    def update(self):
+        if self.direction:
+            if app.time % self.speed == 0:
+                self.cur_frame = (self.direction - 1) * 4 + self.count
+                self.image = self.frames[self.cur_frame]
+                self.move()
+                self.count += 1
+                if self.count == 4:
+                    self.move()
+                    self.get_item()
+                    self.direction = 0
+                    self.count = 0
+                    self.x = self.rect.x
+                    self.y = self.rect.y
+        else:
+            self.image = self.frames[9]
+
+    def move(self):
+        if self.direction == 1:
+            self.rect.x -= 10
+        elif self.direction == 2:
+            self.rect.x += 10
+        elif self.direction == 3:
+            self.rect.y += 10
+        else:
+            self.rect.y -= 10
+
+    def update_pos(self, direction):
+        if not self.direction:
+            self.direction = direction
 
     def get_item(self):
         item = pygame.sprite.spritecollideany(self, app.items)
         if item:
             item.get()
+
+    def stop(self):
+        direction = {1: 2, 2: 1, 3: 4, 4: 3}
+        self.direction = direction[self.direction]
+        for _ in range(self.count):
+            self.move()
+        self.count = 0
+        self.direction = 0
 
 
 if __name__ == '__main__':
