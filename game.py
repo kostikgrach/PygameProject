@@ -52,12 +52,12 @@ class Wall(pygame.sprite.Sprite):
 
 class Boxes(Wall):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(app.load_image('box.jpg'),  app, pos_x, pos_y)
+        super().__init__(app.load_image('box.jpg'), app, pos_x, pos_y)
 
 
 class Border(Wall):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(app.load_image('bord_hor.png'),  app, pos_x, pos_y)
+        super().__init__(app.load_image('bord_hor.png'), app, pos_x, pos_y)
 
 
 class App(pygame.sprite.Sprite):
@@ -270,6 +270,13 @@ class App(pygame.sprite.Sprite):
             pygame.display.flip()
             self.clock.tick(self.fps)
 
+    def spaceship(self):
+        pygame.quit()
+        import spaceship
+
+        spaceship.spaceship(self.width, self.height)
+        self.score += spaceship.get_score()
+
 
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y, speed, groups=None):
@@ -313,7 +320,8 @@ class Coin(AnimatedSprite):
 
 class Hero(AnimatedSprite):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(pygame.transform.scale(app.load_image('hero0.png', -1), (app.tile_width * 4, app.tile_height * 4)),
+        super().__init__(pygame.transform.scale(app.load_image('hero0.png', -1),
+                                                (app.tile_width * 4, app.tile_height * 4)),
                          4, 4, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 5, (app.all_sprites, app.hero_gr))
         self.direction = 0
         self.count = 0
