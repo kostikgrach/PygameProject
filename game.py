@@ -50,14 +50,54 @@ class Wall(pygame.sprite.Sprite):
             app.hero.stop()
 
 
-class Boxes(Wall):
-    def __init__(self, app, pos_x, pos_y):
-        super().__init__(app.load_image('box.jpg'),  app, pos_x, pos_y)
+class Safe(Wall):
+    def __init__(self, app, image, pos_x, pos_y):
+        super().__init__(app.load_image(image), app, pos_x, pos_y)
+        self.im = image
+        self.x = pos_x
+        self.y = pos_y
+        # self.add(app.items)
+
+    def update(self):
+        if pygame.sprite.collide_mask(self, app.hero):
+            app.hero.stop()
+            if app.keys[self.im[0]]:
+                pygame.mixer.Sound('data/safe.mp3').play()
+                app.keys[self.im[0]] = False
+
+
+class Keys(pygame.sprite.Sprite):
+    def __init__(self, app, im, pos_x, pos_y):
+        super().__init__(app.tiles_group, app.all_sprites, app.items)
+        self.add(app.items)
+        self.im = im
+        self.image = pygame.transform.scale(app.load_image(im), (app.tile_width, app.tile_height))
+        self.rect = self.image.get_rect().move(
+            app.tile_width * pos_x, app.tile_height * pos_y)
+
+    def get(self):
+        app.keys[self.im[0]] = True
+        print(app.keys)
+        pygame.mixer.Sound('data/open.mp3').play()
+        self.kill()
 
 
 class Border(Wall):
+    def __init__(self, app, image, pos_x, pos_y):
+        super().__init__(app.load_image(image), app, pos_x, pos_y)
+
+
+class Door(Wall):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(app.load_image('bord_hor.png'),  app, pos_x, pos_y)
+        super().__init__(app.load_image('door.png'), app, pos_x, pos_y)
+
+    def update(self):
+        if pygame.sprite.collide_mask(self, app.hero):
+            if all([val is False for val in app.keys.values()]):
+                app.loading_screen()
+            else:
+                app.hero.stop()
+            # app.loading_screen()
 
 
 class App(pygame.sprite.Sprite):
@@ -72,6 +112,9 @@ class App(pygame.sprite.Sprite):
         pygame.display.set_caption('Title')
         pygame.key.set_repeat(200, 70)
         self.fps = 50
+        self.keys = {'r': None,
+                     'g': None,
+                     'p': None}
         self.tile_width = self.tile_height = 50
         self.all_sprites = pygame.sprite.Group()
         self.boxes_group = pygame.sprite.Group()
@@ -84,6 +127,7 @@ class App(pygame.sprite.Sprite):
         self.hero = None
         self.score = 0
         self.time = 0
+        self.num = -1
         self.done = False
         self.bar_length = 0
 
@@ -160,6 +204,7 @@ class App(pygame.sprite.Sprite):
         pygame.draw.rect(self.screen, (169, 172, 199), ((424, 577), (len, 45)))
 
     def loading_screen(self):
+        self.num += 1
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -206,9 +251,26 @@ class App(pygame.sprite.Sprite):
                 if level[y][x] == '.':
                     self.tile = Tile(self, 'floor', x, y)
                 elif level[y][x] == '#':
-                    self.tile_box = Boxes(self, x, y)
+                    self.tile_box = Border(self, 'box.jpg', x, y)
+                elif level[y][x] == 'd':
+                    self.tile_box = Door(self, x, y)
+                elif level[y][x] == 'R':
+                    self.tile_box = Safe(self, 'red_safe.png', x, y)
+                elif level[y][x] == 'P':
+                    self.tile_box = Safe(self, 'purple_safe.png', x, y)
+                elif level[y][x] == 'G':
+                    self.tile_box = Safe(self, 'green_safe.png', x, y)
+                elif level[y][x] == 'r':
+                    Tile(self, 'floor', x, y)
+                    self.tile_box = Keys(self, ('red_key.png'), x, y)
+                elif level[y][x] == 'p':
+                    Tile(self, 'floor', x, y)
+                    self.tile_box = Keys(self, ('purple_key.png'), x, y)
+                elif level[y][x] == 'g':
+                    Tile(self, 'floor', x, y)
+                    self.tile_box = Keys(self, ('green_key.png'), x, y)
                 elif level[y][x] == '|':
-                    self.tile_box = Border(self, x, y)
+                    self.tile_box = Border(self, 'bord_hor.png', x, y)
                 elif level[y][x] == '@':
                     self.tile_hero = Tile(self, 'floor', x, y)
                     self.hero = Hero(self, x, y)
@@ -222,7 +284,6 @@ class App(pygame.sprite.Sprite):
         # вернем игрока, а также размер поля в клетках
 
     def run_game(self):
-
         fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
 
         self.x = 0
@@ -233,7 +294,7 @@ class App(pygame.sprite.Sprite):
         run = True
         lvl = ['map1', 'map2', 'map3']
 
-        self.generate_level(self.load_level(lvl[0]))
+        self.generate_level(self.load_level(lvl[self.num]))
         pygame.mixer.music.play(-1)
 
         while run:
@@ -313,8 +374,9 @@ class Coin(AnimatedSprite):
 
 class Hero(AnimatedSprite):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(pygame.transform.scale(app.load_image('hero0.png', -1), (app.tile_width * 4, app.tile_height * 4)),
-                         4, 4, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 5, (app.all_sprites, app.hero_gr))
+        super().__init__(
+            pygame.transform.scale(app.load_image('hero0.png', -1), (app.tile_width * 4, app.tile_height * 4)),
+            4, 4, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 5, (app.all_sprites, app.hero_gr))
         self.direction = 0
         self.count = 0
         self.x = self.rect.x
