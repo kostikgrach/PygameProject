@@ -86,6 +86,7 @@ class App(pygame.sprite.Sprite):
         self.time = 0
         self.done = False
         self.bar_length = 0
+        self.fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
 
     def terminate(self):
         pygame.quit()
@@ -222,9 +223,6 @@ class App(pygame.sprite.Sprite):
         # вернем игрока, а также размер поля в клетках
 
     def run_game(self):
-
-        fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
-
         self.x = 0
         self.y = 0
         self.sound2 = pygame.mixer.Sound('data/Void-Walk.mp3')
@@ -253,7 +251,7 @@ class App(pygame.sprite.Sprite):
                     if event.key == pygame.K_LEFT:
                         self.hero.update_pos(1)
 
-            self.screen.blit(fon, (0, 0))
+            self.screen.blit(self.fon, (0, 0))
             self.all_sprites.draw(self.screen)
             self.camera.update(self.hero)
             for sprite in self.all_sprites:
@@ -271,11 +269,62 @@ class App(pygame.sprite.Sprite):
             self.clock.tick(self.fps)
 
     def spaceship(self):
-        pygame.quit()
-        import spaceship
+        sp = SpaceshipGame(self)
+        sp.run()
 
-        spaceship.spaceship(self.width, self.height)
-        self.score += spaceship.get_score()
+
+class SpaceshipGame:
+    def __init__(self, app):
+        self.app = app
+        self.screen = app.screen
+        self.score = app.score
+        self.all_sprites = pygame.sprite.Group()
+        self.hero_gr = pygame.sprite.Group()
+        self.stars = pygame.sprite.Group()
+        self.meteors = pygame.sprite.Group()
+        self.hero = Spaceship(self, (10, app.height // 2))
+        self.width, self.height = app.width, app.height
+        self.time = 0
+
+    def run(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.app.terminate()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.app.terminate()
+                    if event.key == pygame.K_DOWN:
+                        self.hero.move[1] = 5
+                    if event.key == pygame.K_UP:
+                        self.hero.move[1] = -5
+                    if event.key == pygame.K_RIGHT:
+                        self.hero.move[0] = 5
+                    if event.key == pygame.K_LEFT:
+                        self.hero.move[0] = -5
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_DOWN:
+                        self.hero.move[1] = 0
+                    if event.key == pygame.K_UP:
+                        self.hero.move[1] = 0
+                    if event.key == pygame.K_RIGHT:
+                        self.hero.move[0] = 0
+                    if event.key == pygame.K_LEFT:
+                        self.hero.move[0] = 0
+
+            self.screen.blit(self.app.fon, (0, 0))
+            self.all_sprites.draw(self.screen)
+            self.hero_gr.update()
+            self.meteors.update()
+            if self.time % 20 == 0:
+                Meteor(self)
+                if self.time % 100 == 0:
+                    Star(self)
+            self.time += 1
+            pygame.display.update()
+            pygame.display.flip()
+            self.app.clock.tick(app.fps)
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -373,6 +422,75 @@ class Hero(AnimatedSprite):
         self.direction = 0
 
 
+class Spaceship(pygame.sprite.Sprite):
+    def __init__(self, app, pos):
+        self.app = app
+        super().__init__(app.hero_gr, app.all_sprites)
+        self.image = App.load_image("spaceship.png", -1)
+        self.rect = self.image.get_rect()
+        self.hp = 10
+        # вычисляем маску для эффективного сравнения
+        # self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect().move(pos)
+        self.move = [0, 0]
+
+    def update(self):
+        if self.hp == 0:
+            self.kill()
+        x, y = self.move
+        self.rect.x += x
+        self.rect.y += y
+        if self.rect.x < 0:
+            self.rect.x = 0
+        if self.rect.x > self.app.width - 100:
+            self.rect.x = self.app.width - 100
+        if self.rect.y < 0:
+            self.rect.y = 0
+        if self.rect.y > self.app.height - 100:
+            self.rect.y = self.app.height - 100
+
+
+class Meteor(pygame.sprite.Sprite):
+    def __init__(self, window):
+        self.app = window
+        super(Meteor, self).__init__(window.meteors, window.all_sprites)
+        self.image = App.load_image(f'meteor{str(random.randint(0, 6))}.webp')
+        self.rect = self.image.get_rect()
+        # вычисляем маску для эффективного сравнения
+        # self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect().move(window.app.width + 80, random.randint(0, window.app.height))
+        self.speed = random.randint(5, 20)
+
+    def update(self):
+        self.rect.x -= self.speed
+        if pygame.sprite.collide_mask(self, self.app.hero):
+            self.app.hero.hp -= 1
+            self.kill()
+        if self.rect.x < -80:
+            self.kill()
+
+
+class Star(pygame.sprite.Sprite):
+    def __init__(self, window):
+        self.app = window
+        super(Star, self).__init__(window.meteors, window.all_sprites)
+        self.image = App.load_image('star.webp')
+        self.rect = self.image.get_rect()
+        # вычисляем маску для эффективного сравнения
+        # self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect().move(window.app.width + 80, random.randint(0, window.app.height))
+        self.speed = random.randint(2, 5)
+
+    def update(self):
+        self.rect.x -= self.speed
+        if pygame.sprite.collide_mask(self, self.app.hero):
+            self.app.score += 100
+            self.kill()
+        if self.rect.x < -80:
+            self.kill()
+
+
 if __name__ == '__main__':
     app = App()
-    app.start_wind()
+    app.spaceship()
+    # app.start_screen()
