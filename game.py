@@ -282,9 +282,13 @@ class App(pygame.sprite.Sprite):
                     Coin(self, x, y)
                 elif level[y][x] == 'v':
                     self.tile_hero = Tile(self, 'vent', x, y)
+                elif level[y][x] == 'S':
+                    Tile(self, 'floor', x, y)
+                    SpaceshipTile(self, x, y)
         # вернем игрока, а также размер поля в клетках
 
     def run_game(self):
+        self.fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
         self.x = 0
         self.y = 0
         self.sound2 = pygame.mixer.Sound('data/Void-Walk.mp3')
@@ -424,6 +428,18 @@ class AnimatedSprite(pygame.sprite.Sprite):
         if app.time % self.speed == 0:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
+
+
+class SpaceshipTile(pygame.sprite.Sprite):
+    def __init__(self, app, pos_x, pos_y):
+        super().__init__(app.all_sprites, app.items)
+        self.app = app
+        self.image = pygame.transform.scale(app.load_image("spaceship.png", -1), (app.tile_width, app.tile_height))
+        self.rect = self.image.get_rect()
+        self.rect = self.image.get_rect().move(pos_x * app.tile_width, pos_y * app.tile_height)
+
+    def get(self):
+        self.app.spaceship()
 
 
 class Coin(AnimatedSprite):
