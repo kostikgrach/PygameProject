@@ -282,13 +282,14 @@ class SpaceshipGame:
         self.hero_gr = pygame.sprite.Group()
         self.stars = pygame.sprite.Group()
         self.meteors = pygame.sprite.Group()
+        self.lasers = pygame.sprite.Group()
         self.hero = Spaceship(self, (10, app.height // 2))
         self.width, self.height = app.width, app.height
         self.time = 0
+        self.running = True
 
     def run(self):
-        running = True
-        while running:
+        while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.app.terminate()
@@ -317,14 +318,23 @@ class SpaceshipGame:
             self.all_sprites.draw(self.screen)
             self.hero_gr.update()
             self.meteors.update()
-            if self.time % 20 == 0:
-                Meteor(self)
-                if self.time % 100 == 0:
-                    Star(self)
+            self.stars.update()
+            self.lasers.update()
+            if self.time % 10 == 0:
+                self.hero.shoot()
+                if self.time % 20 == 0:
+                    Meteor(self)
+                    if self.time % 100 == 0:
+                        Star(self)
             self.time += 1
             pygame.display.update()
             pygame.display.flip()
             self.app.clock.tick(app.fps)
+
+    def end(self):
+        self.app.score = self.score
+        self.app.time += self.time
+        self.running = False
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -428,7 +438,7 @@ class Spaceship(pygame.sprite.Sprite):
         super().__init__(app.hero_gr, app.all_sprites)
         self.image = App.load_image("spaceship.png", -1)
         self.rect = self.image.get_rect()
-        self.hp = 10
+        self.hp = 3
         # вычисляем маску для эффективного сравнения
         # self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect().move(pos)
@@ -436,7 +446,7 @@ class Spaceship(pygame.sprite.Sprite):
 
     def update(self):
         if self.hp == 0:
-            self.kill()
+            self.app.end()
         x, y = self.move
         self.rect.x += x
         self.rect.y += y
@@ -448,6 +458,27 @@ class Spaceship(pygame.sprite.Sprite):
             self.rect.y = 0
         if self.rect.y > self.app.height - 100:
             self.rect.y = self.app.height - 100
+
+    def shoot(self):
+        Laser(self.app, self.rect.x + 100, self.rect.y + 45)
+
+
+class Laser(pygame.sprite.Sprite):
+    def __init__(self, window, x, y):
+        self.app = window
+        super(Laser, self).__init__(window.lasers, window.all_sprites)
+        self.image = App.load_image('laserRed01.png', -1)
+        self.rect = self.image.get_rect()
+        self.rect = self.image.get_rect().move(x, y)
+        self.speed = 20
+
+    def update(self):
+        self.rect.x += self.speed
+        if meteor := pygame.sprite.spritecollideany(self, self.app.meteors):
+            meteor.kill()
+            self.kill()
+        if self.rect.x > self.app.width:
+            self.kill()
 
 
 class Meteor(pygame.sprite.Sprite):
@@ -473,7 +504,7 @@ class Meteor(pygame.sprite.Sprite):
 class Star(pygame.sprite.Sprite):
     def __init__(self, window):
         self.app = window
-        super(Star, self).__init__(window.meteors, window.all_sprites)
+        super(Star, self).__init__(window.stars, window.all_sprites)
         self.image = App.load_image('star.webp')
         self.rect = self.image.get_rect()
         # вычисляем маску для эффективного сравнения
@@ -492,5 +523,5 @@ class Star(pygame.sprite.Sprite):
 
 if __name__ == '__main__':
     app = App()
+    # app.start_wind()
     app.spaceship()
-    # app.start_screen()
