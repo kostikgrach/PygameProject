@@ -64,6 +64,7 @@ class Safe(Wall):
             if app.keys[self.im[0]]:
                 pygame.mixer.Sound('data/safe.mp3').play()
                 app.keys[self.im[0]] = False
+                app.tutorials['keys'] = True
 
 
 class Keys(pygame.sprite.Sprite):
@@ -94,6 +95,7 @@ class Door(Wall):
     def update(self):
         if pygame.sprite.collide_mask(self, app.hero):
             if all([val is False for val in app.keys.values()]):
+                app.tutorials['doors'] = True
                 app.loading_screen()
             else:
                 app.hero.stop()
@@ -123,14 +125,17 @@ class App(pygame.sprite.Sprite):
         self.hero = Hero(self, 100, 100)
         self.horiz = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
+        self.tutorial_group = pygame.sprite.Group()
         self.camera = Camera(self)
         self.hero = None
+        self.tutorial = None
         self.score = 0
         self.time = 0
         self.num = -1
         self.done = False
         self.bar_length = 0
         self.fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
+        self.tutorials = {'walking': False, 'coins': False, 'keys': False, 'doors': False}
 
     def terminate(self):
         pygame.quit()
@@ -300,6 +305,8 @@ class App(pygame.sprite.Sprite):
         self.generate_level(self.load_level(lvl[self.num]))
         pygame.mixer.music.play(-1)
 
+        self.tutorial = Tutorial(self)
+
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -317,6 +324,7 @@ class App(pygame.sprite.Sprite):
                     if event.key == pygame.K_LEFT:
                         self.hero.update_pos(1)
 
+            self.screen.fill((0, 0, 0))
             self.screen.blit(self.fon, (0, 0))
             self.all_sprites.draw(self.screen)
             self.camera.update(self.hero)
@@ -329,6 +337,7 @@ class App(pygame.sprite.Sprite):
             self.hero_gr.update()
             self.boxes_group.draw(self.screen)
             self.boxes_group.update()
+            self.tutorial.update()
             self.time += 1
             pygame.display.update()
             pygame.display.flip()
@@ -337,6 +346,34 @@ class App(pygame.sprite.Sprite):
     def spaceship(self):
         sp = SpaceshipGame(self)
         sp.run()
+
+    def get_tutorial(self):
+        for key, value in self.tutorials.items():
+            if not value:
+                return key
+
+
+class Tutorial:
+    def __init__(self, app):
+        self.window = app
+        self.font = pygame.font.Font(None, 50)
+        self.texts = {'walking': 'Чтобы перемщаться, используте стрелки',
+                      'coins': 'За собранные монетки Вы получаете очки',
+                      'keys': 'Чтобы открыть сейф нужно взять соответствующий ключ и подойти к сейфу',
+                      'doors': 'Чтобы перейти на следующий уровень откройте все сейфы и пройдите через дверь'}
+
+    def update(self):
+        try:
+            line = self.texts[self.window.get_tutorial()]
+        except KeyError:
+            line = ''
+        if line:
+            text = self.font.render(line, True, (255, 255, 255))
+            text_w = text.get_width()
+            text_h = text.get_height()
+            self.window.screen.blit(text,
+                                    (self.window.width // 2 - text_w // 2,
+                                     self.window.height - 100 - text_h // 2))
 
 
 class SpaceshipGame:
@@ -453,12 +490,15 @@ class Coin(AnimatedSprite):
         """вариант другой мелодии"""
         pygame.mixer.Sound('data/coin(var).mp3').play()
         self.kill()
+        app.tutorials['coins'] = True
 
 
 class Hero(AnimatedSprite):
     def __init__(self, app, pos_x, pos_y):
-        super().__init__(pygame.transform.scale(app.load_image('hero0.png', -1), (app.tile_width * 4, app.tile_height * 4)),
-                         4, 4, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 5, (app.all_sprites, app.hero_gr))
+        super().__init__(
+            pygame.transform.scale(app.load_image('hero0.png', -1), (app.tile_width * 4, app.tile_height * 4)),
+            4, 4, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 5, (app.all_sprites, app.hero_gr))
+        self.widow = app
         self.direction = 0
         self.count = 0
         self.x = self.rect.x
@@ -478,6 +518,7 @@ class Hero(AnimatedSprite):
                     self.count = 0
                     self.x = self.rect.x
                     self.y = self.rect.y
+            self.widow.tutorials['walking'] = True
         else:
             self.image = self.frames[9]
 
