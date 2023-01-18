@@ -352,6 +352,37 @@ class App(pygame.sprite.Sprite):
             if not value:
                 return key
 
+    def end_game(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.terminate()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self.terminate()
+                elif event.type == pygame.KEYDOWN:
+                    running = False
+
+            self.screen.blit(self.fon, (0, 0))
+
+            font = pygame.font.Font(None, 100)
+            text = font.render(f"Ваш счет: {self.score}", True, (100, 255, 100))
+            text_x = self.width // 2 - text.get_width() // 2
+            text_y = self.height // 2 - text.get_height() // 2
+            self.screen.blit(text, (text_x, text_y))
+
+            font = pygame.font.Font(None, 50)
+            text = font.render("Нажмите любую кнопку", True, (100, 255, 100))
+            text_x = self.width // 2 - text.get_width() // 2
+            text_y = self.height // 2 - text.get_height() // 2 + 100
+            self.screen.blit(text, (text_x, text_y))
+
+            pygame.display.update()
+            pygame.display.flip()
+        global app
+        app = App()
+        app.start_wind()
+
 
 class Tutorial:
     def __init__(self, app):
@@ -429,6 +460,8 @@ class SpaceshipGame:
                     Meteor(self)
                     if self.time % 100 == 0:
                         Star(self)
+                        if self.time == 10000:
+                            self.end()
             self.time += 1
             pygame.display.update()
             pygame.display.flip()
@@ -438,6 +471,7 @@ class SpaceshipGame:
         self.app.score = self.score
         self.app.time += self.time
         self.running = False
+        self.app.end_game()
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
