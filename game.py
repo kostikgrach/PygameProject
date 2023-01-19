@@ -168,10 +168,11 @@ class App(pygame.sprite.Sprite):
         self.screen.blit(string_rendered, intro_rect)
 
     def start_wind(self):
+
         intro_text = ['<НАЗВАНИЕ ИГРЫ>']
         self.sound = pygame.mixer.Sound('data/start.mp3')
         self.sound.play()
-        self.fon = pygame.transform.scale(self.load_image('start_fon.jpg'), (self.width, self.height))
+        self.fon = pygame.transform.scale(self.load_image('start.jpg'), (self.width, self.height))
         self.screen.blit(self.fon, (0, 0))
         font = pygame.font.Font(None, int(0.06 * self.width))
         text_coord = int(0.4 * self.height)
@@ -204,6 +205,38 @@ class App(pygame.sprite.Sprite):
             pygame.display.flip()
             self.clock.tick(self.fps)
 
+    def final_wind(self):
+        intro_text = ['Игра окончена!', f'Ваш счет: {self.score}']
+        # self.sound = pygame.mixer.Sound('data/start.mp3')
+        self.sound.play()
+        self.fon = pygame.transform.scale(self.load_image('final_'), (self.width, self.height))
+        self.screen.blit(self.fon, (0, 0))
+        font = pygame.font.Font(None, int(0.06 * self.width))
+        text_coord = int(0.4 * self.height)
+        for line in intro_text:
+            string_rendered = font.render(line, True, pygame.Color(255, 240, 240))
+            intro_rect = string_rendered.get_rect()
+            text_coord += 30
+            intro_rect.top = text_coord
+            intro_rect.x = int(0.45 * self.width)
+            text_coord += intro_rect.height
+            self.screen.blit(string_rendered, intro_rect)
+        count = 0
+        while True:
+            colors = [(0, 0, 0), "white"]
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.terminate()
+                elif event.type == pygame.KEYDOWN:
+                    self.terminate()
+
+            count += 1
+
+            self.msg('НАЖМИТЕ ЛЮБУЮ КНОПКУ', colors[count % 2])
+            pygame.display.update()
+            pygame.display.flip()
+            self.clock.tick(self.fps)
+
     def draw_bar(self, len):
         pygame.time.delay(70)
         self.screen.blit(self.fon, (0, 0))
@@ -231,7 +264,10 @@ class App(pygame.sprite.Sprite):
             # pygame.display.update()
             # pygame.display.flip()
             # self.clock.tick(self.fps)
-            self.run_game()
+            if self.num < 1:
+                self.run_game()
+            else:
+                self.final_wind()
 
     def load_level(self, filename):
 
@@ -307,6 +343,8 @@ class App(pygame.sprite.Sprite):
 
         self.tutorial = Tutorial(self)
 
+        self.font = pygame.font.Font(None, 50)
+
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -339,6 +377,14 @@ class App(pygame.sprite.Sprite):
             self.boxes_group.update()
             self.tutorial.update()
             self.time += 1
+
+            text = self.font.render(f"Очки: {self.score}", True, (235, 255, 255))
+            text_w = text.get_width()
+            text_h = text.get_height()
+            self.screen.blit(text,
+                             (self.width // 2 - text_w // 2,
+                              self.height - 200))
+
             pygame.display.update()
             pygame.display.flip()
             self.clock.tick(self.fps)
