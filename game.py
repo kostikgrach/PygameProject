@@ -244,6 +244,7 @@ class App(pygame.sprite.Sprite):
 
     def loading_screen(self):
         self.num += 1
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -264,7 +265,8 @@ class App(pygame.sprite.Sprite):
             # pygame.display.update()
             # pygame.display.flip()
             # self.clock.tick(self.fps)
-            if self.num < 1:
+            print(self.num)
+            if self.num < 2:
                 self.run_game()
             else:
                 self.final_wind()
@@ -333,6 +335,9 @@ class App(pygame.sprite.Sprite):
         self.x = 0
         self.y = 0
         self.sound2 = pygame.mixer.Sound('data/Void-Walk.mp3')
+        self.keys = {'r': None,
+                     'g': None,
+                     'p': None}
         # self.sound2.play()
 
         run = True
