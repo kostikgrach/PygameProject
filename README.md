@@ -24,9 +24,9 @@
 Класс SpaceshipGame -
 Класс SpaceshipTile -
 Класс Spaceship -
-Класс Laser -
-Класс Meteor -
-Класс Star -
+Класс Laser - 
+Класс Meteor - 
+Класс Star - 
 Карты уровней загружаются из текстовых файлов в методе generate_level.
 
 Все необходимые ресурсы хранятся в папке data.

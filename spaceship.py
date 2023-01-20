@@ -19,7 +19,7 @@ class GameView(arcade.View):
 
     def setup(self):
         arcade.set_background_color(arcade.csscolor.BLACK)
-        self.background = arcade.Sprite("data/Fon.jpeg", 1.5)
+        self.background = arcade.Sprite("data/fon.jpeg", 1.5)
         self.player = arcade.Sprite(":resources:images/space_shooter/playerShip1_orange.png", scale=0.5,
                                     flipped_diagonally=True, flipped_horizontally=True, hit_box_algorithm="Detailed")
         global height

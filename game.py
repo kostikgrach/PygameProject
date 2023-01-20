@@ -92,11 +92,21 @@ class Door(Wall):
     def __init__(self, app, pos_x, pos_y):
         super().__init__(app.load_image('door.png'), app, pos_x, pos_y)
 
+
     def update(self):
         if pygame.sprite.collide_mask(self, app.hero):
             if all([val is False for val in app.keys.values()]):
                 app.tutorials['doors'] = True
+                app.all_sprites = pygame.sprite.Group()
+                app.all_sprites = pygame.sprite.Group()
+                app.boxes_group = pygame.sprite.Group()
+                app.items = pygame.sprite.Group()
+                app.hero_gr = pygame.sprite.Group()
+                app.horiz = pygame.sprite.Group()
+                app.tiles_group = pygame.sprite.Group()
+                app.tutorial_group = pygame.sprite.Group()
                 app.loading_screen()
+
             else:
                 app.hero.stop()
             # app.loading_screen()
