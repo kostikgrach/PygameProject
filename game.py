@@ -136,6 +136,7 @@ class App(pygame.sprite.Sprite):
         self.horiz = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
         self.tutorial_group = pygame.sprite.Group()
+        self.buttons = pygame.sprite.Group()
         self.camera = Camera(self)
         self.hero = None
         self.tutorial = None
@@ -143,6 +144,7 @@ class App(pygame.sprite.Sprite):
         self.time = 0
         self.num = -1
         self.done = False
+        self.open_menu = False
         self.bar_length = 0
         self.fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
         self.tutorials = {'walking': False, 'coins': False, 'keys': False, 'doors': False}
@@ -365,7 +367,7 @@ class App(pygame.sprite.Sprite):
                 if event.type == pygame.QUIT:
                     self.terminate()
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    self.terminate()
+                    self.menu()
                 # key = pygame.key.get_pressed()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_DOWN:
@@ -444,6 +446,25 @@ class App(pygame.sprite.Sprite):
         app = App()
         app.start_wind()
 
+    def menu(self):
+        Button(self, 'continue', int(self.width * 0.3), int(self.height * 0.2))
+        Button(self, 'exit', int(self.width * 0.3), int(self.height * 0.6))
+        self.open_menu = True
+        while self.open_menu:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.terminate()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        self.buttons.update(*event.pos)
+
+                self.buttons.draw(self.screen)
+                pygame.display.update()
+                pygame.display.flip()
+
+        for button in self.buttons:
+            button.kill()
+
 
 class Tutorial:
     def __init__(self, app):
@@ -468,6 +489,37 @@ class Tutorial:
                                      self.window.height - 100 - text_h // 2))
 
 
+class Button(pygame.sprite.Sprite):
+    def __init__(self, app, name, x, y):
+        super(Button, self).__init__(app.all_sprites, app.buttons)
+        self.width, self.height = int(app.width * 0.4), int(app.height * 0.2)
+        self.image = pygame.transform.scale(App.load_image(f'button_{name}.png', -1 ), (self.width, self.height))
+        self.rect = self.image.get_rect().move(x, y)
+        self.x, self.y = x, y
+        self.text = name
+        self.do = {'exit': app.terminate, 'continue': self.continue_game}
+
+    def is_clicked(self, x, y):
+        if x in range(self.x, self.x + self.width) and y in range(self.y, self.y + self.height):
+            return self.text
+
+    def continue_game(self):
+        app.open_menu = False
+
+    def update(self, x, y):
+        try:
+            self.do[self.is_clicked(x, y)]()
+        except KeyError:
+            pass
+
+
+class Heart(pygame.sprite.Sprite):
+    def __init__(self, app, x, y):
+        super().__init__(app.all_sprites, app.hp)
+        self.image = pygame.transform.scale(App.load_image('heart.jpeg', -1), (100, 100))
+        self.rect = self.image.get_rect().move(x, y)
+
+
 class SpaceshipGame:
     def __init__(self, app):
         self.app = app
@@ -480,6 +532,9 @@ class SpaceshipGame:
         self.lasers = pygame.sprite.Group()
         self.hero = Spaceship(self, (10, app.height // 2))
         self.width, self.height = app.width, app.height
+        self.hp = pygame.sprite.Group()
+        for i in range(3):
+            Heart(self, int(self.width * 0.8 + i * 100), 0)
         self.time = 0
         self.running = True
 
@@ -490,7 +545,7 @@ class SpaceshipGame:
                     self.app.terminate()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        self.app.terminate()
+                        self.app.menu()
                     if event.key == pygame.K_DOWN:
                         self.hero.move[1] = 5
                     if event.key == pygame.K_UP:
@@ -709,6 +764,7 @@ class Meteor(pygame.sprite.Sprite):
         self.rect.x -= self.speed
         if pygame.sprite.collide_mask(self, self.app.hero):
             self.app.hero.hp -= 1
+            list(self.app.hp)[0].kill()
             self.kill()
         if self.rect.x < -80:
             self.kill()
