@@ -5,23 +5,40 @@ import random
 
 
 class Camera:
+    """Класс камеры. Перемещает спрайты ртносительно героя
+
+    Attributes
+    ----------
+    dx : int
+        смещние объекта по оси x
+    dy : int
+        смещние объекта по оси y
+
+    Methods
+    -------
+    apply(obj)
+        сдвигает объект obj на смещение камеры
+    update(target)
+        изменить смещение камеры для target
+    """
     # зададим начальный сдвиг камеры
     def __init__(self, app):
         self.dx = 0
         self.dy = 0
 
-    # сдвинуть объект obj на смещение камеры
     def apply(self, obj):
+        """сдвинуть объект obj на смещение камеры"""
         obj.rect.x += self.dx
         obj.rect.y += self.dy
 
-    # позиционировать камеру на объекте target
     def update(self, target):
+        """позиционировать камеру на объекте target"""
         self.dx = -(target.rect.x + target.rect.w // 2 - app.width // 2)
         self.dy = -(target.rect.y + target.rect.h // 2 - app.height // 2)
 
 
 class Tile(pygame.sprite.Sprite):
+    """Класс тайла"""
     def __init__(self, app, tile_type, pos_x, pos_y, *groups):
         super().__init__(app.tiles_group, app.all_sprites)
         tile_images = {
@@ -37,6 +54,13 @@ class Tile(pygame.sprite.Sprite):
 
 
 class Wall(pygame.sprite.Sprite):
+    """Класс стены
+
+    Methods
+    -------
+    update()
+        Проверяет столкновение с героем. В случае столкновения возвращает гроя назад
+    """
     def __init__(self, image, app, pos_x, pos_y):
         super().__init__(app.tiles_group, app.all_sprites, app.boxes_group)
         self.add(app.boxes_group)
@@ -51,6 +75,20 @@ class Wall(pygame.sprite.Sprite):
 
 
 class Safe(Wall):
+    """Класс сейфа
+
+    Attributes
+    ----------
+    x : int
+        позиция по оси x
+    y : int
+        позиция по оси y
+
+    Methods
+    -------
+    update()
+        Проверяет столкновение с героем и реализует открытие сейфа
+    """
     def __init__(self, app, image, pos_x, pos_y):
         super().__init__(app.load_image(image), app, pos_x, pos_y)
         self.im = image
@@ -59,6 +97,7 @@ class Safe(Wall):
         # self.add(app.items)
 
     def update(self):
+        """Проверяет столкновение с героем и реализует открытие сейфа, если грой имеет ключ к нему"""
         if pygame.sprite.collide_mask(self, app.hero):
             app.hero.stop()
             if app.keys[self.im[0]]:
@@ -68,6 +107,18 @@ class Safe(Wall):
 
 
 class Keys(pygame.sprite.Sprite):
+    """Класс ключа
+
+    Attributes
+    ----------
+    im : str
+        Название изображения
+
+    Methods
+    -------
+    get()
+        Реализует поднятие ключа
+    """
     def __init__(self, app, im, pos_x, pos_y):
         super().__init__(app.tiles_group, app.all_sprites, app.items)
         self.add(app.items)
@@ -77,6 +128,7 @@ class Keys(pygame.sprite.Sprite):
             app.tile_width * pos_x, app.tile_height * pos_y)
 
     def get(self):
+        """Поднятие ключа"""
         app.keys[self.im[0]] = True
         print(app.keys)
         pygame.mixer.Sound('data/open.mp3').play()
@@ -84,16 +136,24 @@ class Keys(pygame.sprite.Sprite):
 
 
 class Border(Wall):
+    """Класс непроходимого объекта с изображнием image"""
     def __init__(self, app, image, pos_x, pos_y):
         super().__init__(app.load_image(image), app, pos_x, pos_y)
 
 
 class Door(Wall):
+    """Класс двери
+
+    Methods
+    -------
+    update()
+        Когда сталкивается с героем осуществляет переход на следующий уровень, если открыты сейфы
+    """
     def __init__(self, app, pos_x, pos_y):
         super().__init__(app.load_image('door.png'), app, pos_x, pos_y)
 
-
     def update(self):
+        """Осуществляет переход на следующий уровень, если открыты сейфы"""
         if pygame.sprite.collide_mask(self, app.hero):
             if all([val is False for val in app.keys.values()]):
                 app.tutorials['doors'] = True
@@ -102,7 +162,6 @@ class Door(Wall):
                 app.boxes_group = pygame.sprite.Group()
                 app.items = pygame.sprite.Group()
                 app.hero_gr = pygame.sprite.Group()
-                app.horiz = pygame.sprite.Group()
                 app.tiles_group = pygame.sprite.Group()
                 app.tutorial_group = pygame.sprite.Group()
                 app.loading_screen()
@@ -113,6 +172,92 @@ class Door(Wall):
 
 
 class App(pygame.sprite.Sprite):
+    """Основной класс игры
+
+    Attributes
+    ----------
+    all_sprites : pygame.sprite.Group
+        Группа всех српайтов
+    clock : pygame.time.Clock
+        Отвечает за время
+    screen
+        Окно приложения
+    width : int
+        Ширина экрана
+    height : int
+        Высота окна
+    fps : int
+        Количество кадров в секунду
+    keys : dict
+        Состояние кючей
+    tile_width : int
+        Ширина тайла(клетки)
+    tile_height : int
+        Высота тайла(клетки)
+    all_sprites : pygame.sprite.Group
+        Группа всех спрайтов
+    boxes_group : pygame.sprite.Group
+        Группа коробок
+    items : pygame.sprite.Group
+        Группа вещей
+    hero_gr : pygame.sprite.Group
+        Группа играбельных персоанажей
+    hero : Hero
+        Персоанаж игрока
+    tiles_group : pygame.sprite.Group
+        Группа тайлов
+    tutorial_group : pygame.sprite.Group
+        Обучение
+    buttons : pygame.sprite.Group
+        Группа кнопок
+    camera : Camera
+        Камера
+    score : int
+        Количество набранных очков
+    time : int
+        Время игры(в фреймах)
+    num : int
+        Номер текущего уровня
+    open_menu : bool
+        Состояние меню(открыто/закрыто)
+    bar_length : int
+        Длина ползунка загрузки
+    fon
+        Фон игры
+    tutorials : dict
+        Словарь с состоянием обучения
+
+    Methods
+    -------
+    terminate()
+        Закрытие игры
+    load_image(name, colorkey=None)
+        Загружает изображение name из папки data
+    msg(text, col):
+        Выводит на экран text цвета col
+    start_wind():
+        Открывает стартовое окно
+    final_wind():
+        Открывает финальное окно
+    draw_bar(len):
+        Отрисовка прямой загрузки
+    loading_screen():
+        Открывает экран загрузки и загружает новый уровень
+    load_level(filename):
+        Загружает уровень из тексового файла
+    generate_level(level):
+        Создает уроень из строки
+    run_game():
+        Запускает игру
+    spaceship():
+        Запускает игру с космическим кораблем
+    get_tutorial():
+        Возвращает текущий этап обучения
+    end_game():
+        Открывает финальное окно, после его закрытия запускает игру заново
+    menu():
+        Открывает меню паузы
+    """
     def __init__(self):
         self.all_sprites = pygame.sprite.Group()
         super().__init__(self.all_sprites)
@@ -133,7 +278,6 @@ class App(pygame.sprite.Sprite):
         self.items = pygame.sprite.Group()
         self.hero_gr = pygame.sprite.Group()
         self.hero = Hero(self, 100, 100)
-        self.horiz = pygame.sprite.Group()
         self.tiles_group = pygame.sprite.Group()
         self.tutorial_group = pygame.sprite.Group()
         self.buttons = pygame.sprite.Group()
@@ -143,18 +287,27 @@ class App(pygame.sprite.Sprite):
         self.score = 0
         self.time = 0
         self.num = -1
-        self.done = False
         self.open_menu = False
         self.bar_length = 0
         self.fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
         self.tutorials = {'walking': False, 'coins': False, 'keys': False, 'doors': False}
 
     def terminate(self):
+        """Закрывает приложение"""
         pygame.quit()
         sys.exit()
 
     @staticmethod
     def load_image(name, colorkey=None):
+        """Загружает зображение из папки data
+
+        Parameters
+        ----------
+        name : str
+            имя файла
+        colorkey : None or int
+            если -1, делает фон прозрачным
+        """
         fullname = os.path.join('data', name)
         # если файл не существует, то выходим
         if not os.path.isfile(fullname):
@@ -171,6 +324,15 @@ class App(pygame.sprite.Sprite):
         return image
 
     def msg(self, text, col):
+        """Выводит текст на экран
+
+        Parameters
+        ----------
+        text : str
+            текст
+        col : tuple or str
+            цвет текста
+        """
         pygame.time.delay(1000)
         font = pygame.font.Font(None, int(0.04 * self.width))
         string_rendered = font.render(text, True, pygame.Color(col))
@@ -180,6 +342,7 @@ class App(pygame.sprite.Sprite):
         self.screen.blit(string_rendered, intro_rect)
 
     def start_wind(self):
+        """Открывает стартовое окно"""
 
         intro_text = ['<НАЗВАНИЕ ИГРЫ>']
         self.sound = pygame.mixer.Sound('data/start.mp3')
@@ -218,6 +381,7 @@ class App(pygame.sprite.Sprite):
             self.clock.tick(self.fps)
 
     def final_wind(self):
+        """Открывает финальное окно"""
         intro_text = ['Игра окончена!', f'Ваш счет: {self.score}']
         # self.sound = pygame.mixer.Sound('data/start.mp3')
         self.sound.play()
@@ -250,11 +414,19 @@ class App(pygame.sprite.Sprite):
             self.clock.tick(self.fps)
 
     def draw_bar(self, len):
+        """Отрисовывает прямую загрузки
+
+        Parameters
+        ----------
+        len : int
+            длина прямой
+        """
         pygame.time.delay(70)
         self.screen.blit(self.fon, (0, 0))
         pygame.draw.rect(self.screen, (169, 172, 199), ((424, 577), (len, 45)))
 
     def loading_screen(self):
+        """Отрисовывает экран загрузки"""
         self.num += 1
 
         while True:
@@ -284,6 +456,13 @@ class App(pygame.sprite.Sprite):
                 self.final_wind()
 
     def load_level(self, filename):
+        """Загружает уровень и возвращает его в виде списка
+
+        Parameters
+        ----------
+        filename : str
+            имя файла
+        """
 
         fullname = os.path.join('data', filename)
         if not os.path.isfile(fullname):
@@ -301,6 +480,13 @@ class App(pygame.sprite.Sprite):
         return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
     def generate_level(self, level):
+        """Создает уровень
+
+        Parameters
+        ----------
+        level : list
+            схема уровня
+        """
         new_player, x, y = None, None, None
         for y in range(len(level)):
             for x in range(len(level[y])):
@@ -343,6 +529,7 @@ class App(pygame.sprite.Sprite):
         # вернем игрока, а также размер поля в клетках
 
     def run_game(self):
+        """Запускает игру"""
         self.fon = pygame.transform.scale(self.load_image('fon.jpeg'), (self.width, self.height))
         self.x = 0
         self.y = 0
@@ -407,15 +594,18 @@ class App(pygame.sprite.Sprite):
             self.clock.tick(self.fps)
 
     def spaceship(self):
+        """Запускает игру с космичеким кораблем"""
         sp = SpaceshipGame(self)
         sp.run()
 
     def get_tutorial(self):
+        """Возвращает текущий этап обучения"""
         for key, value in self.tutorials.items():
             if not value:
                 return key
 
     def end_game(self):
+        """Открывает финальное окно, после его закрытия запускает игру заново"""
         running = True
         while running:
             for event in pygame.event.get():
@@ -447,6 +637,7 @@ class App(pygame.sprite.Sprite):
         app.start_wind()
 
     def menu(self):
+        """Открывает меню паузы"""
         Button(self, 'continue', int(self.width * 0.3), int(self.height * 0.2))
         Button(self, 'exit', int(self.width * 0.3), int(self.height * 0.6))
         self.open_menu = True
@@ -467,6 +658,22 @@ class App(pygame.sprite.Sprite):
 
 
 class Tutorial:
+    """Класс обуеня
+
+    Attributes
+    ----------
+    window : App
+        Приложение, в котором будет идти игра
+    font : pygame.font.Font
+        Шрифт
+    texts : dict
+        Текст обучения
+
+    Methods
+    -------
+    update()
+        Вывод текста обучения на экран
+    """
     def __init__(self, app):
         self.window = app
         self.font = pygame.font.Font(None, 50)
@@ -476,6 +683,7 @@ class Tutorial:
                       'doors': 'Чтобы перейти на следующий уровень, откройте все сейфы и пройдите через дверь'}
 
     def update(self):
+        """Вывод текста обучения на экран"""
         try:
             line = self.texts[self.window.get_tutorial()]
         except KeyError:
@@ -490,23 +698,52 @@ class Tutorial:
 
 
 class Button(pygame.sprite.Sprite):
+    """Класс кнопки
+
+    Attributes
+    ----------
+    width : int
+        ширина кнопки
+    height : int
+        высота кнопки
+    x : int
+        координата левого верхнего угла по оси x
+    y : int
+        координата левого верхнего угла по оси y
+    text : str
+        текст кнопки
+    do : dict
+        словарь с дейстиями
+
+    Methods
+    -------
+    is_clicked(x, y)
+        проверяет нажата ли кнопка, возврщает ее текст при нажатии
+    continue_game()
+        выход из меню
+    update()
+        при нажатии на кнопку выполняет соответствубщее ей действие
+    """
     def __init__(self, app, name, x, y):
         super(Button, self).__init__(app.all_sprites, app.buttons)
         self.width, self.height = int(app.width * 0.4), int(app.height * 0.2)
-        self.image = pygame.transform.scale(App.load_image(f'button_{name}.png', -1 ), (self.width, self.height))
+        self.image = pygame.transform.scale(App.load_image(f'button_{name}.png', -1), (self.width, self.height))
         self.rect = self.image.get_rect().move(x, y)
         self.x, self.y = x, y
         self.text = name
         self.do = {'exit': app.terminate, 'continue': self.continue_game}
 
     def is_clicked(self, x, y):
+        """Проверяет нажата ли кнопка, возврщает ее текст при нажатии"""
         if x in range(self.x, self.x + self.width) and y in range(self.y, self.y + self.height):
             return self.text
 
     def continue_game(self):
+        """Выход из меню"""
         app.open_menu = False
 
     def update(self, x, y):
+        """При нажатии на кнопку выполняет соответствубщее ей действие"""
         try:
             self.do[self.is_clicked(x, y)]()
         except KeyError:
@@ -514,6 +751,7 @@ class Button(pygame.sprite.Sprite):
 
 
 class Heart(pygame.sprite.Sprite):
+    """Класс для отбражения жизней в игре с космическим кораблем"""
     def __init__(self, app, x, y):
         super().__init__(app.all_sprites, app.hp)
         self.image = pygame.transform.scale(App.load_image('heart.jpeg', -1), (100, 100))
@@ -521,6 +759,46 @@ class Heart(pygame.sprite.Sprite):
 
 
 class SpaceshipGame:
+    """Класс игры с космическим кораблем
+
+    Attributes
+    ----------
+    app : App
+        Приложение в котором будет идти игра
+    screen
+        Окно игры
+    score : int
+        Количество набранных очков
+    all_sprites : pygame.sprite.Group
+        Группа всех спрайтов
+    hero_gr : pygame.sprite.Group
+        Группа играбельных персоанажей
+    stars : pygame.sprite.Group
+        Группа звезд
+    meteors : pygame.sprite.Group
+        Группа метеоритов
+    lasers : pygame.sprite.Group
+        Группа лазеров
+    hero : Spaceship
+        Космический корабль
+    width : int
+        Ширина экрана
+    height : int
+        Высота экрана
+    hp : pygame.sprite.Group
+        Группа сердечек
+    time : int
+        Время игры(в кадрах)
+    running : bool
+        Флаг игры
+
+    Methods
+    -------
+    run()
+        Запуск игры
+    end()
+        Завешение игры
+    """
     def __init__(self, app):
         self.app = app
         self.screen = app.screen
@@ -539,6 +817,7 @@ class SpaceshipGame:
         self.running = True
 
     def run(self):
+        """Запуск игры"""
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -584,6 +863,7 @@ class SpaceshipGame:
             self.app.clock.tick(app.fps)
 
     def end(self):
+        """Завешение игры"""
         self.app.score = self.score
         self.app.time += self.time
         self.running = False
@@ -591,6 +871,22 @@ class SpaceshipGame:
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
+    """Класс анимированного спрайта
+
+    Attributes
+    ----------
+    speed : int
+        Скорость изменения анмимации
+    frames : list
+        Список кадров анимации
+
+    Methods
+    -------
+    cut_sheet(sheet, columns, rows)
+        Разрезает сет на отдельные кадры
+    update()
+        Меняет анимацию
+    """
     def __init__(self, sheet, columns, rows, x, y, speed, groups=None):
         if groups is None:
             groups = [app.all_sprites]
@@ -603,6 +899,17 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(x, y)
 
     def cut_sheet(self, sheet, columns, rows):
+        """Разрезает сет на отдельные кадры
+
+        Parameters
+        ----------
+        sheet : image
+            название файла с сетом
+        columns : int
+            количество столбцов
+        rows : int
+            количество строк
+        """
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
                                 sheet.get_height() // rows)
         for j in range(rows):
@@ -612,12 +919,25 @@ class AnimatedSprite(pygame.sprite.Sprite):
                     frame_location, self.rect.size)))
 
     def update(self):
+        """Меняет анимацию"""
         if app.time % self.speed == 0:
             self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
 
 
 class SpaceshipTile(pygame.sprite.Sprite):
+    """Класс комического корабля(когда не летает)
+
+    Attributes
+    ----------
+    app : App
+        Приложение, в котором будет использоваться
+
+    Methods
+    -------
+    get()
+        Запускает игру с космическим кораблем
+    """
     def __init__(self, app, pos_x, pos_y):
         super().__init__(app.all_sprites, app.items)
         self.app = app
@@ -630,11 +950,19 @@ class SpaceshipTile(pygame.sprite.Sprite):
 
 
 class Coin(AnimatedSprite):
+    """Класс анимированной монетки
+
+    Methods
+    -------
+    get()
+        Увеличивает счет и убирает монетку
+    """
     def __init__(self, app, pos_x, pos_y):
         super().__init__(pygame.transform.scale(app.load_image('coin.png'), (app.tile_width * 8, app.tile_height)), 8,
                          1, app.tile_width * pos_x, app.tile_height * (pos_y + 1), 2, (app.all_sprites, app.items))
 
     def get(self):
+        """Увеличивает счет и убирает монетку"""
         app.score += 100
         # pygame.mixer.Sound('data/coin.mp3').play()
         """вариант другой мелодии"""
@@ -644,6 +972,34 @@ class Coin(AnimatedSprite):
 
 
 class Hero(AnimatedSprite):
+    """Класс героя
+
+    Attributes
+    ----------
+    widow : App
+        Приложение, в котором используется
+    direction : int
+        Направление двизения
+    count : int
+        Счетчик времени движения
+    x : int
+        Координата левого верхнего угла по оси x
+    y : int
+        Координата левого верхнего угла по оси y
+
+    Methods
+    -------
+    update()
+        Осуществляет движение героя
+    move()
+        Перемещение героя по полю
+    update_pos(direction)
+        Изменение направления движения героя
+    get_item()
+        Поднятие предмета
+    stop()
+        Отмена движения
+    """
     def __init__(self, app, pos_x, pos_y):
         super().__init__(
             pygame.transform.scale(app.load_image('hero0.png', -1), (app.tile_width * 4, app.tile_height * 4)),
@@ -655,6 +1011,7 @@ class Hero(AnimatedSprite):
         self.y = self.rect.y
 
     def update(self):
+        """Осуществляет движение героя"""
         if self.direction:
             if app.time % self.speed == 0:
                 self.cur_frame = (self.direction - 1) * 4 + self.count
@@ -673,6 +1030,7 @@ class Hero(AnimatedSprite):
             self.image = self.frames[9]
 
     def move(self):
+        """Перемещение героя по полю"""
         if self.direction == 1:
             self.rect.x -= 10
         elif self.direction == 2:
@@ -683,15 +1041,24 @@ class Hero(AnimatedSprite):
             self.rect.y -= 10
 
     def update_pos(self, direction):
+        """Изменение направления движения героя
+
+        Parameters
+        ----------
+        direction : int
+            Новое направление движения
+        """
         if not self.direction:
             self.direction = direction
 
     def get_item(self):
+        """Поднятие предмета"""
         item = pygame.sprite.spritecollideany(self, app.items)
         if item:
             item.get()
 
     def stop(self):
+        """Отмена движения"""
         direction = {1: 2, 2: 1, 3: 4, 4: 3}
         self.direction = direction[self.direction]
         for _ in range(self.count):
@@ -701,6 +1068,24 @@ class Hero(AnimatedSprite):
 
 
 class Spaceship(pygame.sprite.Sprite):
+    """Класс играбельного космического корабля
+
+    Attributes
+    ----------
+    app : App
+        Приложение, в котором используется
+    hp : int
+        Очки здоровья
+    move : list
+        Скорость движения по осям
+
+    Methods
+    -------
+    update()
+        Двигает космический корабль
+    shoot()
+        Выстрел
+    """
     def __init__(self, app, pos):
         self.app = app
         super().__init__(app.hero_gr, app.all_sprites)
@@ -713,6 +1098,7 @@ class Spaceship(pygame.sprite.Sprite):
         self.move = [0, 0]
 
     def update(self):
+        """Двигает космический корабль"""
         if self.hp == 0:
             self.app.end()
         x, y = self.move
@@ -728,10 +1114,25 @@ class Spaceship(pygame.sprite.Sprite):
             self.rect.y = self.app.height - 100
 
     def shoot(self):
+        """Выстрел"""
         Laser(self.app, self.rect.x + 100, self.rect.y + 45)
 
 
 class Laser(pygame.sprite.Sprite):
+    """Класс лазера
+
+    Attributes
+    ----------
+    app : SpaceshipGame
+        Обьект, в котором используется
+    speed : int
+        Скорость полета
+
+    Methods
+    -------
+    update()
+        Двигает лазер и уничтожает метеор при столкновении
+    """
     def __init__(self, window, x, y):
         self.app = window
         super(Laser, self).__init__(window.lasers, window.all_sprites)
@@ -750,6 +1151,20 @@ class Laser(pygame.sprite.Sprite):
 
 
 class Meteor(pygame.sprite.Sprite):
+    """Класс метеорита
+
+    Attributes
+    ----------
+    app : SpaceshipGame
+        Обьект, в котором используется
+    speed : int
+        Скорость полета
+
+    Methods
+    -------
+    update()
+        Двигает метеорит и уничтожает его при столкновении с кораблем
+    """
     def __init__(self, window):
         self.app = window
         super(Meteor, self).__init__(window.meteors, window.all_sprites)
@@ -761,6 +1176,7 @@ class Meteor(pygame.sprite.Sprite):
         self.speed = random.randint(5, 20)
 
     def update(self):
+        """Двигает метеорит и уничтожает его при столкновении с кораблем"""
         self.rect.x -= self.speed
         if pygame.sprite.collide_mask(self, self.app.hero):
             self.app.hero.hp -= 1
@@ -771,6 +1187,20 @@ class Meteor(pygame.sprite.Sprite):
 
 
 class Star(pygame.sprite.Sprite):
+    """Класс метеорита
+
+    Attributes
+    ----------
+    app : SpaceshipGame
+        Обьект, в котором используется
+    speed : int
+        Скорость полета
+
+    Methods
+    -------
+    update()
+        Двигает звезду и уничтожает ее, увеличивая счет, при столкновении с кораблем
+    """
     def __init__(self, window):
         self.app = window
         super(Star, self).__init__(window.stars, window.all_sprites)
@@ -782,6 +1212,7 @@ class Star(pygame.sprite.Sprite):
         self.speed = random.randint(2, 5)
 
     def update(self):
+        """Двигает звезду и уничтожает ее, увеличивая счет, при столкновении с кораблем"""
         self.rect.x -= self.speed
         if pygame.sprite.collide_mask(self, self.app.hero):
             self.app.score += 100
