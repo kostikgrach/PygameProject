@@ -1,3 +1,6 @@
+"""Заготовка игры с космическим кораблем"""
+
+
 import random
 import arcade
 
